@@ -12,13 +12,143 @@ LOGGER_SCRIPT="$PROJECT_ROOT/src/serial_logger.py"
 PLOTTER_SCRIPT="$PROJECT_ROOT/src/realtime_plotter.py"
 PIPE_PATH="$PROJECT_ROOT/logs/arduino_input.pipe"
 PLOTTER_ERR_LOG="$PROJECT_ROOT/logs/plotter_errors.log"
-# ---------------------
+FIRMWARE_DIR="$PROJECT_ROOT/firmware"
+FIRMWARE_CHECKSUM_FILE="$PROJECT_ROOT/.firmware_uploaded"
+
+# --- Required Libraries ---
+REQUIRED_LIBS=(
+    "Adafruit AHTX0"
+    "Adafruit ADS1X15"
+    "TimerOne"
+    "LiquidCrystal"
+)
+# -------------------------
 
 if [ "$1" != "CTS" ]; then
     echo "Usage: connect CTS"
     exit 1
 fi
 
+# ========================================================================
+# FIRMWARE VERIFICATION FUNCTION
+# ========================================================================
+check_and_upload_firmware() {
+    echo "========================================================================="
+    echo "Checking Arduino Firmware..."
+    echo "========================================================================="
+    
+    if [ ! -d "$FIRMWARE_DIR" ]; then
+        echo "Error: Firmware directory not found at $FIRMWARE_DIR"
+        return 1
+    fi
+    
+    # Calculate current firmware checksum
+    CURRENT_CHECKSUM=$(find "$FIRMWARE_DIR" -name "*.ino" -o -name "*.h" | sort | xargs cat | md5sum | awk '{print $1}')
+    
+    echo "Current firmware checksum: $CURRENT_CHECKSUM"
+    
+    if [ -f "$FIRMWARE_CHECKSUM_FILE" ]; then
+        STORED_CHECKSUM=$(cat "$FIRMWARE_CHECKSUM_FILE")
+        echo "Stored firmware checksum:  $STORED_CHECKSUM"
+        
+        if [ "$CURRENT_CHECKSUM" = "$STORED_CHECKSUM" ]; then
+            echo "✓ Firmware is up-to-date. Skipping upload."
+            echo "========================================================================="
+            return 0
+        else
+            echo "⚠ Firmware has changed or new files added. Will re-upload."
+        fi
+    else
+        echo "⚠ No previous firmware upload found. Will upload."
+    fi
+    
+    echo ""
+    echo "Uploading firmware to Arduino..."
+    
+    if ! command -v arduino-cli &> /dev/null; then
+        echo "Error: arduino-cli not found."
+        return 1
+    fi
+    
+    # Install required libraries
+    echo "Checking and installing required libraries..."
+    for lib in "${REQUIRED_LIBS[@]}"; do
+        echo "  Installing: $lib"
+        arduino-cli lib install "$lib" > /dev/null 2>&1
+    done
+    
+    # Temporarily move LSU_CTS_control_v1.ino to avoid duplicate compilation
+    LSU_FILE="$FIRMWARE_DIR/LSU_CTS_control_v1.ino"
+    LSU_FILE_TEMP="${LSU_FILE}.tmp"
+    
+    if [ -f "$LSU_FILE" ]; then
+        echo "Temporarily excluding LSU_CTS_control_v1.ino from compilation..."
+        mv "$LSU_FILE" "$LSU_FILE_TEMP"
+    fi
+    
+    # Compile only (no upload yet)
+    BUILD_PATH="/tmp/arduino_build_$$"
+    rm -rf "$BUILD_PATH"
+    mkdir -p "$BUILD_PATH"
+    
+    echo "Compiling sketch..."
+    arduino-cli compile --fqbn arduino:avr:mega --build-path "$BUILD_PATH" "$FIRMWARE_DIR/firmware.ino"
+    COMPILE_RESULT=$?
+    
+    # Restore the original file
+    if [ -f "$LSU_FILE_TEMP" ]; then
+        echo "Restoring LSU_CTS_control_v1.ino..."
+        mv "$LSU_FILE_TEMP" "$LSU_FILE"
+    fi
+    
+    if [ $COMPILE_RESULT -ne 0 ]; then
+        echo "Error: Compilation failed"
+        rm -rf "$BUILD_PATH"
+        return 1
+    fi
+    
+    # Find the hex file in snap cache
+    echo "Finding compiled hex file..."
+    HEX_FILE=$(find /home/ferraric/snap/arduino-cli/62/.cache/arduino/sketches -name "firmware.ino.hex" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+    
+    if [ -z "$HEX_FILE" ]; then
+        echo "Error: Compiled .hex file not found in snap cache"
+        rm -rf "$BUILD_PATH"
+        return 1
+    fi
+    
+    echo "Found hex file: $HEX_FILE"
+    echo ""
+    echo "Uploading to Arduino..."
+    
+    # Use the avrdude that comes with arduino-cli snap
+    sudo /snap/arduino-cli/current/bin/avrdude -C /etc/avrdude.conf -v -p atmega2560 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:"$HEX_FILE":i
+    
+    UPLOAD_RESULT=$?
+    rm -rf "$BUILD_PATH"
+    
+    if [ $UPLOAD_RESULT -eq 0 ]; then
+        echo "✓ Firmware uploaded successfully!"
+        echo "$CURRENT_CHECKSUM" > "$FIRMWARE_CHECKSUM_FILE"
+        echo "========================================================================="
+        return 0
+    else
+        echo "Error: Failed to upload firmware to Arduino"
+        echo "========================================================================="
+        return 1
+    fi
+}
+
+# ========================================================================
+# VERIFY FIRMWARE BEFORE STARTING
+# ========================================================================
+check_and_upload_firmware
+if [ $? -ne 0 ]; then
+    echo "Firmware verification/upload failed. Aborting."
+    exit 1
+fi
+
+echo ""
 mkdir -p "$(dirname "$PIPE_PATH")"
 rm -f "$PIPE_PATH"
 

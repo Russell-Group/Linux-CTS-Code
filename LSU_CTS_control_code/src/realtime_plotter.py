@@ -19,11 +19,21 @@ import time
 import os
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-DATA_FILE = '/home/lsu-neutrino/Desktop/CTS/logs/CTS_Arduino_serial_log.csv'
+
+# Get the directory of this script (CTS/src/)
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+# Go up one level to project root (CTS/)
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Now reference the logs directory
+LOG_DIR = PROJECT_ROOT / "logs"
+DATA_FILE = LOG_DIR / "CTS_Arduino_serial_log.csv"
 MAX_POINTS = 500              # More points since we have more horizontal space
 UPDATE_INTERVAL = 2000        # Update every 2 seconds
 

@@ -4,12 +4,22 @@ import serial
 import signal
 import sys
 import time
+from pathlib import Path
 
 # --- Configuration ---
 SERIAL_PORT = "/dev/ttyACM0"  # Adjust to your port
-BAUD_RATE = 115200           # Adjust to match Arduino Serial.begin()
-LOG_DIR = "/home/lsu-neutrino/Desktop/CTS/logs"           # Directory to store logs
-PIPE_NAME = "arduino_input.pipe" # Named pipe for clean command entry
+BAUD_RATE = 115200             # Adjust to match Arduino Serial.begin()
+
+# Get the directory of this script (CTS/src/)
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+# Go up one level to project root (CTS/)
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Now reference other directories
+LOG_DIR = PROJECT_ROOT / "logs"
+PIPE_NAME = "arduino_input.pipe"
+PIPE_PATH = LOG_DIR / PIPE_NAME
 # ---------------------
 
 # Global tracking variables so signal handlers can see them

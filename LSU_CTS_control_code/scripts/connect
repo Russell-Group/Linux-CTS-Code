@@ -1,10 +1,17 @@
 #!/bin/bash
 
 # --- Configuration ---
-LOGGER_SCRIPT="/home/lsu-neutrino/Desktop/CTS/serial_logger.py"
-PLOTTER_SCRIPT="/home/lsu-neutrino/Desktop/CTS/realtime_plotter.py"
-PIPE_PATH="/home/lsu-neutrino/Desktop/CTS/logs/arduino_input.pipe"
-PLOTTER_ERR_LOG="/home/lsu-neutrino/Desktop/CTS/logs/plotter_errors.log"
+# Get the directory where this script is located (scripts/)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Go up one level to reach the project root (CTS/)
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+
+# Now reference files from the project root
+LOGGER_SCRIPT="$PROJECT_ROOT/src/serial_logger.py"
+PLOTTER_SCRIPT="$PROJECT_ROOT/src/realtime_plotter.py"
+PIPE_PATH="$PROJECT_ROOT/logs/arduino_input.pipe"
+PLOTTER_ERR_LOG="$PROJECT_ROOT/logs/plotter_errors.log"
 # ---------------------
 
 if [ "$1" != "CTS" ]; then

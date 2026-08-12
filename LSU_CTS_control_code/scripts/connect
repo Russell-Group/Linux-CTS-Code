@@ -121,8 +121,9 @@ check_and_upload_firmware() {
     echo ""
     echo "Uploading to Arduino..."
     
-    # Use the avrdude that comes with arduino-cli snap
-    sudo /snap/arduino-cli/current/bin/avrdude -C /etc/avrdude.conf -v -p atmega2560 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:"$HEX_FILE":i
+    echo "Uploading to Arduino..."
+    # Use system avrdude
+    sudo avrdude -C /etc/avrdude.conf -v -p atmega2560 -c wiring -P /dev/ttyACM0 -b 115200 -D -U flash:w:"$HEX_FILE":i
     
     UPLOAD_RESULT=$?
     rm -rf "$BUILD_PATH"

@@ -374,7 +374,7 @@ python3 -c "import serial; print(serial.__version__)"
 
 ### Project Structure
 
-perl
+```perl
 CTS-Control-Code/
 ├── LSU_CTS_control_code/          # Main project directory
 │   ├── firmware/                  # Arduino firmware
@@ -397,8 +397,8 @@ CTS-Control-Code/
 │   └── .gitignore                 # Git ignore rules
 │
 └── .git/                          # Git repository metadata
-
-Features
+```
+### Features
 
 ✅ Automatic Firmware Detection
 

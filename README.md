@@ -59,8 +59,10 @@ sudo apt install -y gcc g++ make
 
 ### Step 2: Add User to dialout Group (Serial Port Access)
 
+
+```
 # Add current user to dialout group for serial port access
-```sudo usermod -a -G dialout $USER
+sudo usermod -a -G dialout $USER
 ```
 
 # Apply group changes (choose one):

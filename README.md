@@ -116,6 +116,8 @@ You should see something like:
 Port     Protocol Type              Board Name FQBN            Core
 /dev/ttyACM0 serial   Serial Port (USB) Arduino Mega 2560 arduino:avr:mega
 
+```
+
 Hardware Setup
 USB Connection
 
@@ -123,8 +125,7 @@ USB Connection
         A powered USB hub can be used, but direct connection is more reliable
         Two USB-C cables connected directly to the PC work best
 
-    Verify Connection
-```
+Verify Connection
 
 ```bash
 # Check if Arduino is detected

@@ -93,7 +93,7 @@ check_and_upload_firmware() {
     
     echo "Compiling sketch..."
     arduino-cli compile --fqbn arduino:avr:mega --build-path "$BUILD_PATH" "$FIRMWARE_DIR/firmware.ino"
-    COMPILE_RESULT=$?
+    COMPILE_RESULT=$?    
     
     # Restore the original file
     if [ -f "$LSU_FILE_TEMP" ]; then
@@ -108,15 +108,16 @@ check_and_upload_firmware() {
     fi
     
     # Find the hex file in snap cache
+    # The hex file should be in the build path we specified
     echo "Finding compiled hex file..."
-    HEX_FILE=$(find /home/ferraric/snap/arduino-cli/62/.cache/arduino/sketches -name "firmware.ino.hex" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
-    
-    if [ -z "$HEX_FILE" ]; then
-        echo "Error: Compiled .hex file not found in snap cache"
+    HEX_FILE="$BUILD_PATH/firmware.ino.hex"
+
+    if [ ! -f "$HEX_FILE" ]; then
+        echo "Error: Compiled .hex file not found at $HEX_FILE"
         rm -rf "$BUILD_PATH"
         return 1
     fi
-    
+
     echo "Found hex file: $HEX_FILE"
     echo ""
     echo "Uploading to Arduino..."

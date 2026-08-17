@@ -499,46 +499,47 @@ lcd.clear();
   ads.begin();
 
   //Set up Grenoble Readout - Using RAW I2C (no library)
-  Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
+  //Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
   
   // Set I2C speed
-  Wire.setClock(100000);  // 100kHz
-  delay(50);
+  //Wire.setClock(100000);  // 100kHz
+  //delay(50);
   
   // Switch to mux channel 3
-  if (SetI2C(i2cChannel3)) {
-    Serial.println(F("[GRENOBLE] Switched to I2C mux channel 3"));
-    delay(50);
+  //if (SetI2C(i2cChannel3)) {
+    //Serial.println(F("[GRENOBLE] Switched to I2C mux channel 3"));
+    //delay(50);
     
     // Check if AD7746 present
-    Wire.beginTransmission(AD7746_ADDR);
-    byte error = Wire.endTransmission();
+    //Wire.beginTransmission(AD7746_ADDR);
+    //byte error = Wire.endTransmission();
     
-    if (error == 0) {
-      Serial.println(F("[GRENOBLE] AD7746 detected at 0x48"));
+    //if (error == 0) {
+      //Serial.println(F("[GRENOBLE] AD7746 detected at 0x48"));
       
       // Initialize AD7746 using raw I2C
-      if (ad7746_init()) {
-        Serial.println(F("[GRENOBLE] AD7746 initialized successfully!"));
-        GRENOBLE_ENABLED = true;
-      } else {
-        Serial.println(F("[GRENOBLE] AD7746 initialization failed"));
-        GRENOBLE_ENABLED = false;
-      }
-    } else {
-      Serial.print(F("[GRENOBLE] AD7746 not found (error "));
-      Serial.print(error);
-      Serial.println(F(")"));
-      GRENOBLE_ENABLED = false;
-    }
-  } else {
-    Serial.println(F("[GRENOBLE] Could not set I2C mux to channel 3"));
-    GRENOBLE_ENABLED = false;
-  }
+      //if (ad7746_init()) {
+        //Serial.println(F("[GRENOBLE] AD7746 initialized successfully!"));
+        //GRENOBLE_ENABLED = true;
+      //} else {
+        //Serial.println(F("[GRENOBLE] AD7746 initialization failed"));
+        //GRENOBLE_ENABLED = false;
+      //}
+    //} else {
+      //Serial.print(F("[GRENOBLE] AD7746 not found (error "));
+      //Serial.print(error);
+      //Serial.println(F(")"));
+      //GRENOBLE_ENABLED = false;
+    //}
+  //} else {
+    //Serial.println(F("[GRENOBLE] Could not set I2C mux to channel 3"));
+    //GRENOBLE_ENABLED = false;
+  //}
   
-  Serial.print(F("[GRENOBLE] Final status: "));
-  Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
- 
+  //Serial.print(F("[GRENOBLE] Final status: "));
+  //Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
+  
+  GRENOBLE_ENABLED = false;
   Read_Level_Sensors();
   Get_SD_Pressure();
 

@@ -495,8 +495,22 @@ lcd.clear();
 
   //Set up ADC
   SetI2C(i2cChannel0);
-  ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit =  0.125mV
-  ads.begin();
+  ads.setGain(GAIN_ONE);
+  Serial.print(F("[BOOT] Initializing ADS1115... "));
+  if (!ads.begin()) {
+    Serial.println(F("FAILED"));
+    Serial.println(F("[ERROR] ADS1115 not responding!"));
+    Serial.println(F("[WARNING] Skipping all sensor reads"));
+  } else {
+    Serial.println(F("OK"));
+    Serial.println(F("[BOOT] Reading Level Sensors..."));
+    //Read_Level_Sensors();
+    Serial.println(F("[BOOT] Level Sensors read complete"));
+
+    Serial.println(F("[BOOT] Reading Pressure..."));
+    //Get_SD_Pressure();
+    Serial.println(F("[BOOT] Pressure read complete"));
+  }
 
   //Set up Grenoble Readout - Using RAW I2C (no library)
   //Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
@@ -537,12 +551,47 @@ lcd.clear();
   //}
   
   //Serial.print(F("[GRENOBLE] Final status: "));
-  //Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
+  Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
   
   GRENOBLE_ENABLED = false;
-  Read_Level_Sensors();
-  Get_SD_Pressure();
+  Serial.println(F("[BOOT] Scanning I2C bus..."));
+  for (uint8_t addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    uint8_t error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print(F("[I2C] Device found at 0x"));
+      if (addr < 16) Serial.print(F("0"));
+      Serial.println(addr, HEX);
+      }
+    }
+  // TRY TO SELECT CHANNEL 0
+  Serial.println(F("[BOOT] Attempting SetI2C(1)..."));
+  SetI2C(i2cChannel0);
+  Serial.println(F("[BOOT] SetI2C(1) completed"));
 
+  // THEN SCAN AGAIN
+  Serial.println(F("[BOOT] Scanning I2C bus after channel select..."));
+  for (uint8_t addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    uint8_t error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print(F("[I2C] Device found at 0x"));
+      if (addr < 16) Serial.print(F("0"));
+      Serial.println(addr, HEX);
+    }
+  }
+  Serial.println(F("[BOOT] Attempting SetI2C(1)..."));
+  SetI2C(i2cChannel0);
+  Serial.println(F("[BOOT] SetI2C(1) completed"));
+
+  Serial.println(F("[BOOT] Reading Level Sensors..."));
+  //Read_Level_Sensors();
+  Serial.println(F("[BOOT] Level Sensors read complete"));
+
+  Serial.println(F("[BOOT] Reading Pressure..."));
+  //Get_SD_Pressure();
+  Serial.println(F("[BOOT] Pressure read complete"));
+  
   lcd.setCursor(0,0);     
   lcd.print(F("Enabling System:"));
   Serial.println(F("Enabling System"));
@@ -825,7 +874,7 @@ case 'A':  // Autofill diagnostic
 
   //Get_Lid_Temperature();
 
-  Read_Level_Sensors();  // sets TC_Level and can set STATE = 0 and Err_Code if there is a fault
+  //Read_Level_Sensors();  // sets TC_Level and can set STATE = 0 and Err_Code if there is a fault
 
   if (allDAQ == 1 || dewarDAQ == 1 || chamberDAQ == 1) {
     if (GRENOBLE_ENABLED) {
@@ -834,7 +883,7 @@ case 'A':  // Autofill diagnostic
   }
 
 
-  Get_SD_Pressure(); // sets Pressure and can set STATE = 0 and Err_Code if over-pressure detected
+  //Get_SD_Pressure(); // sets Pressure and can set STATE = 0 and Err_Code if over-pressure detected
 
   dewarPress = pressurePSI(Pressure[0]);
 
@@ -2054,13 +2103,22 @@ void SetState(int n){
 
 void Read_Level_Sensors(){ 
 
+  Serial.println(F("[DEBUG] Read_Level_Sensors START"));
+  
   SetI2C(i2cChannel0);
+  Serial.println(F("[DEBUG] SetI2C done"));
+  
   for(int i = 0; i < 10; i++) {
-
+    Serial.print(F("[DEBUG] SetMux("));
+    Serial.print(i);
+    Serial.println(F(")"));
+    
     SetMux(i);
-
-    adc0 = ads.readADC_SingleEnded(0);         //ADC channel 0 is assigned to level sensors
-
+    Serial.println(F("[DEBUG] SetMux done, calling readADC..."));
+    
+    adc0 = ads.readADC_SingleEnded(0);
+    Serial.println(F("[DEBUG] readADC done"));
+    
     LevelSensor[i]=adc0;
     if (adc0 < 10000) {
       LevelStatus[i] = 1; // Too Low -- shorted out?

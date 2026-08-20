@@ -493,24 +493,8 @@ lcd.clear();
   digitalWrite(i2c0_Rst, HIGH);
   delay(100);
 
-  //Set up ADC
-  SetI2C(i2cChannel0);
-  ads.setGain(GAIN_ONE);
-  Serial.print(F("[BOOT] Initializing ADS1115... "));
-  if (!ads.begin()) {
-    Serial.println(F("FAILED"));
-    Serial.println(F("[ERROR] ADS1115 not responding!"));
-    Serial.println(F("[WARNING] Skipping all sensor reads"));
-  } else {
-    Serial.println(F("OK"));
-    Serial.println(F("[BOOT] Reading Level Sensors..."));
-    //Read_Level_Sensors();
-    Serial.println(F("[BOOT] Level Sensors read complete"));
-
-    Serial.println(F("[BOOT] Reading Pressure..."));
-    //Get_SD_Pressure();
-    Serial.println(F("[BOOT] Pressure read complete"));
-  }
+  // Skip ADS init for now - will do it after scanning
+  Serial.println(F("[BOOT] Skipping ADS1115 init until after bus scan"));
 
   //Set up Grenoble Readout - Using RAW I2C (no library)
   //Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
@@ -554,30 +538,53 @@ lcd.clear();
   Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
   
   GRENOBLE_ENABLED = false;
-  Serial.println(F("[BOOT] Scanning I2C bus..."));
-  for (uint8_t addr = 1; addr < 127; addr++) {
-    Wire.beginTransmission(addr);
-    uint8_t error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print(F("[I2C] Device found at 0x"));
-      if (addr < 16) Serial.print(F("0"));
-      Serial.println(addr, HEX);
+  Serial.println(F("[BOOT] Scanning I2C bus for mux..."));
+  Wire.beginTransmission(0x70);
+  if (Wire.endTransmission() == 0) {
+    Serial.println(F("[I2C] Mux found at 0x70"));
+  } else {
+    Serial.println(F("[I2C] Mux NOT found at 0x70"));
+  }
+
+  delay(100);
+
+  // NOW scan all channels for ADC
+  Serial.println(F("[BOOT] Scanning mux channels for ADS1115..."));
+  uint8_t ads_found = 0xFF;
+  for (int ch = 0; ch < 4; ch++) {
+    SetI2C(1 << ch);  // Select channel
+    delay(10);
+  
+    for (uint8_t addr = 0x48; addr <= 0x4B; addr++) {
+      Wire.beginTransmission(addr);
+      if (Wire.endTransmission() == 0) {
+        Serial.print(F("[I2C] ADS1115 found at 0x"));
+        if (addr < 16) Serial.print(F("0"));
+        Serial.print(addr, HEX);
+        Serial.print(F(" on channel "));
+        Serial.println(ch);
+        ads_found = addr;
+        break;
       }
     }
-  // TRY TO SELECT CHANNEL 0
-  Serial.println(F("[BOOT] Attempting SetI2C(1)..."));
-  SetI2C(i2cChannel0);
-  Serial.println(F("[BOOT] SetI2C(1) completed"));
+    if (ads_found != 0xFF) break;
+  }
 
-  // THEN SCAN AGAIN
-  Serial.println(F("[BOOT] Scanning I2C bus after channel select..."));
-  for (uint8_t addr = 1; addr < 127; addr++) {
-    Wire.beginTransmission(addr);
-    uint8_t error = Wire.endTransmission();
-    if (error == 0) {
-      Serial.print(F("[I2C] Device found at 0x"));
-      if (addr < 16) Serial.print(F("0"));
-      Serial.println(addr, HEX);
+  if (ads_found == 0xFF) {
+    Serial.println(F("[WARNING] ADS1115 not found on any channel"));
+  }
+  // NOW try to initialize ADS1115 if found
+  if (ads_found != 0xFF) {
+    Serial.print(F("[BOOT] Initializing ADS1115 at 0x"));
+    if (ads_found < 16) Serial.print(F("0"));
+    Serial.print(ads_found, HEX);
+    Serial.print(F("... "));
+    
+    ads.setGain(GAIN_ONE);
+    if (ads.begin()) {
+      Serial.println(F("OK"));
+    } else {
+      Serial.println(F("FAILED"));
     }
   }
   Serial.println(F("[BOOT] Attempting SetI2C(1)..."));

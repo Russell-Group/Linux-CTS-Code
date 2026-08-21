@@ -548,36 +548,68 @@ lcd.clear();
 
   delay(100);
 
-  // NOW scan all channels for ADC
-  Serial.println(F("[BOOT] Scanning mux channels for ADS1115..."));
-  uint8_t ads_found = 0xFF;
-  for (int ch = 0; ch < 4; ch++) {
-    SetI2C(1 << ch);  // Select channel
-    delay(10);
+  // Scan channel 3 for Grenoble
+  Serial.println(F("[BOOT] Scanning channel 3 for ADS1115..."));
+  uint8_t ads_found_ch3 = 0xFF;
   
+  if (SetI2C(i2cChannel3)) {
+    Serial.println(F("[BOOT] Switched to I2C mux channel 3"));
+    delay(10);
+    
     for (uint8_t addr = 0x48; addr <= 0x4B; addr++) {
       Wire.beginTransmission(addr);
       if (Wire.endTransmission() == 0) {
         Serial.print(F("[I2C] ADS1115 found at 0x"));
         if (addr < 16) Serial.print(F("0"));
         Serial.print(addr, HEX);
-        Serial.print(F(" on channel "));
-        Serial.println(ch);
-        ads_found = addr;
+        Serial.println(F(" on channel 3"));
+        ads_found_ch3 = addr;
         break;
       }
     }
-    if (ads_found != 0xFF) break;
+  } else {
+    Serial.println(F("[BOOT] Could not set I2C mux to channel 3"));
   }
 
-  if (ads_found == 0xFF) {
-    Serial.println(F("[WARNING] ADS1115 not found on any channel"));
-  }
-  // NOW try to initialize ADS1115 if found
-  if (ads_found != 0xFF) {
+  if (ads_found_ch3 != 0xFF) {
     Serial.print(F("[BOOT] Initializing ADS1115 at 0x"));
-    if (ads_found < 16) Serial.print(F("0"));
-    Serial.print(ads_found, HEX);
+    if (ads_found_ch3 < 16) Serial.print(F("0"));
+    Serial.print(ads_found_ch3, HEX);
+    Serial.print(F("... "));
+    
+    ads.setGain(GAIN_ONE);
+    if (ads.begin()) {
+      Serial.println(F("OK"));
+    } else {
+      Serial.println(F("FAILED"));
+    }
+  }
+
+  // NOW scan channel 0 for level sensors / pressure
+  Serial.println(F("[BOOT] Scanning channel 0 for ADS1115..."));
+  uint8_t ads_found_ch0 = 0xFF;
+  
+  if (SetI2C(i2cChannel0)) {
+    Serial.println(F("[BOOT] Switched to I2C mux channel 0"));
+    delay(10);
+    
+    for (uint8_t addr = 0x48; addr <= 0x4B; addr++) {
+      Wire.beginTransmission(addr);
+      if (Wire.endTransmission() == 0) {
+        Serial.print(F("[I2C] ADS1115 found at 0x"));
+        if (addr < 16) Serial.print(F("0"));
+        Serial.print(addr, HEX);
+        Serial.println(F(" on channel 0"));
+        ads_found_ch0 = addr;
+        break;
+      }
+    }
+  }
+
+  if (ads_found_ch0 != 0xFF) {
+    Serial.print(F("[BOOT] Initializing ADS1115 at 0x"));
+    if (ads_found_ch0 < 16) Serial.print(F("0"));
+    Serial.print(ads_found_ch0, HEX);
     Serial.print(F("... "));
     
     ads.setGain(GAIN_ONE);

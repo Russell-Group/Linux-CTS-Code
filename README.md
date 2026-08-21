@@ -6,6 +6,8 @@ Charge Readout Planes repo for QA QC code
 
 Complete setup and operation guide for the LSU CTS (Cryogenic Test System) Arduino control code.
 
+FAQ can be found here: https://docs.google.com/document/d/1Mvxc-8RMR9IKTzCEFsOGMOo0UzxVbzmNyf-6UGv6w-g/edit?usp=sharing
+
 ---
 
 ## Table of Contents

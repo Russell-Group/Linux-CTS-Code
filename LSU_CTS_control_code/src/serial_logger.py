@@ -164,8 +164,6 @@ def main():
                                 cmd_bytes = (cmd + "\n").encode("utf-8")
                                 bytes_written = ser.write(cmd_bytes)
                                 ser.flush()  # Force immediate hardware transmission
-                                print(f"[CMD SENT] {cmd}")
-                                print(f"[DEBUG] Bytes written: {bytes_written}, Raw: {repr(cmd_bytes)}")
             except OSError:
                 # Expected exception block when pipe is empty; step through safely
                 pass

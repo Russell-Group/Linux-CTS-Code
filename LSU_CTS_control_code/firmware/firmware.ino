@@ -493,144 +493,55 @@ lcd.clear();
   digitalWrite(i2c0_Rst, HIGH);
   delay(100);
 
-  // Skip ADS init for now - will do it after scanning
-  Serial.println(F("[BOOT] Skipping ADS1115 init until after bus scan"));
+  //Set up ADC
+  SetI2C(i2cChannel0);
+  ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit =  0.125mV
+  ads.begin();
 
   //Set up Grenoble Readout - Using RAW I2C (no library)
-  //Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
+  Serial.println(F("[GRENOBLE] Initializing via raw I2C..."));
   
   // Set I2C speed
-  //Wire.setClock(100000);  // 100kHz
-  //delay(50);
+  Wire.setClock(100000);  // 100kHz
+  delay(50);
   
   // Switch to mux channel 3
-  //if (SetI2C(i2cChannel3)) {
-    //Serial.println(F("[GRENOBLE] Switched to I2C mux channel 3"));
-    //delay(50);
+  if (SetI2C(i2cChannel3)) {
+    Serial.println(F("[GRENOBLE] Switched to I2C mux channel 3"));
+    delay(50);
     
     // Check if AD7746 present
-    //Wire.beginTransmission(AD7746_ADDR);
-    //byte error = Wire.endTransmission();
+    Wire.beginTransmission(AD7746_ADDR);
+    byte error = Wire.endTransmission();
     
-    //if (error == 0) {
-      //Serial.println(F("[GRENOBLE] AD7746 detected at 0x48"));
+    if (error == 0) {
+      Serial.println(F("[GRENOBLE] AD7746 detected at 0x48"));
       
       // Initialize AD7746 using raw I2C
-      //if (ad7746_init()) {
-        //Serial.println(F("[GRENOBLE] AD7746 initialized successfully!"));
-        //GRENOBLE_ENABLED = true;
-      //} else {
-        //Serial.println(F("[GRENOBLE] AD7746 initialization failed"));
-        //GRENOBLE_ENABLED = false;
-      //}
-    //} else {
-      //Serial.print(F("[GRENOBLE] AD7746 not found (error "));
-      //Serial.print(error);
-      //Serial.println(F(")"));
-      //GRENOBLE_ENABLED = false;
-    //}
-  //} else {
-    //Serial.println(F("[GRENOBLE] Could not set I2C mux to channel 3"));
-    //GRENOBLE_ENABLED = false;
-  //}
+      if (ad7746_init()) {
+        Serial.println(F("[GRENOBLE] AD7746 initialized successfully!"));
+        GRENOBLE_ENABLED = true;
+      } else {
+        Serial.println(F("[GRENOBLE] AD7746 initialization failed"));
+        GRENOBLE_ENABLED = false;
+      }
+    } else {
+      Serial.print(F("[GRENOBLE] AD7746 not found (error "));
+      Serial.print(error);
+      Serial.println(F(")"));
+      GRENOBLE_ENABLED = false;
+    }
+  } else {
+    Serial.println(F("[GRENOBLE] Could not set I2C mux to channel 3"));
+    GRENOBLE_ENABLED = false;
+  }
   
-  //Serial.print(F("[GRENOBLE] Final status: "));
+  Serial.print(F("[GRENOBLE] Final status: "));
   Serial.println(GRENOBLE_ENABLED ? "ENABLED" : "DISABLED");
-  
-  GRENOBLE_ENABLED = false;
-  Serial.println(F("[BOOT] Scanning I2C bus for mux..."));
-  Wire.beginTransmission(0x70);
-  if (Wire.endTransmission() == 0) {
-    Serial.println(F("[I2C] Mux found at 0x70"));
-  } else {
-    Serial.println(F("[I2C] Mux NOT found at 0x70"));
-  }
+ 
+  Read_Level_Sensors();
+  Get_SD_Pressure();
 
-  delay(100);
-
-  // Scan channel 3 for Grenoble
-  Serial.println(F("[BOOT] Scanning channel 3 for ADS1115..."));
-  uint8_t ads_found_ch3 = 0xFF;
-  
-  if (SetI2C(i2cChannel3)) {
-    Serial.println(F("[BOOT] Switched to I2C mux channel 3"));
-    delay(10);
-    
-    for (uint8_t addr = 0x48; addr <= 0x4B; addr++) {
-      Wire.beginTransmission(addr);
-      if (Wire.endTransmission() == 0) {
-        Serial.print(F("[I2C] ADS1115 found at 0x"));
-        if (addr < 16) Serial.print(F("0"));
-        Serial.print(addr, HEX);
-        Serial.println(F(" on channel 3"));
-        ads_found_ch3 = addr;
-        break;
-      }
-    }
-  } else {
-    Serial.println(F("[BOOT] Could not set I2C mux to channel 3"));
-  }
-
-  if (ads_found_ch3 != 0xFF) {
-    Serial.print(F("[BOOT] Initializing ADS1115 at 0x"));
-    if (ads_found_ch3 < 16) Serial.print(F("0"));
-    Serial.print(ads_found_ch3, HEX);
-    Serial.print(F("... "));
-    
-    ads.setGain(GAIN_ONE);
-    if (ads.begin()) {
-      Serial.println(F("OK"));
-    } else {
-      Serial.println(F("FAILED"));
-    }
-  }
-
-  // NOW scan channel 0 for level sensors / pressure
-  Serial.println(F("[BOOT] Scanning channel 0 for ADS1115..."));
-  uint8_t ads_found_ch0 = 0xFF;
-  
-  if (SetI2C(i2cChannel0)) {
-    Serial.println(F("[BOOT] Switched to I2C mux channel 0"));
-    delay(10);
-    
-    for (uint8_t addr = 0x48; addr <= 0x4B; addr++) {
-      Wire.beginTransmission(addr);
-      if (Wire.endTransmission() == 0) {
-        Serial.print(F("[I2C] ADS1115 found at 0x"));
-        if (addr < 16) Serial.print(F("0"));
-        Serial.print(addr, HEX);
-        Serial.println(F(" on channel 0"));
-        ads_found_ch0 = addr;
-        break;
-      }
-    }
-  }
-
-  if (ads_found_ch0 != 0xFF) {
-    Serial.print(F("[BOOT] Initializing ADS1115 at 0x"));
-    if (ads_found_ch0 < 16) Serial.print(F("0"));
-    Serial.print(ads_found_ch0, HEX);
-    Serial.print(F("... "));
-    
-    ads.setGain(GAIN_ONE);
-    if (ads.begin()) {
-      Serial.println(F("OK"));
-    } else {
-      Serial.println(F("FAILED"));
-    }
-  }
-  Serial.println(F("[BOOT] Attempting SetI2C(1)..."));
-  SetI2C(i2cChannel0);
-  Serial.println(F("[BOOT] SetI2C(1) completed"));
-
-  Serial.println(F("[BOOT] Reading Level Sensors..."));
-  //Read_Level_Sensors();
-  Serial.println(F("[BOOT] Level Sensors read complete"));
-
-  Serial.println(F("[BOOT] Reading Pressure..."));
-  //Get_SD_Pressure();
-  Serial.println(F("[BOOT] Pressure read complete"));
-  
   lcd.setCursor(0,0);     
   lcd.print(F("Enabling System:"));
   Serial.println(F("Enabling System"));
@@ -913,7 +824,7 @@ case 'A':  // Autofill diagnostic
 
   //Get_Lid_Temperature();
 
-  //Read_Level_Sensors();  // sets TC_Level and can set STATE = 0 and Err_Code if there is a fault
+  Read_Level_Sensors();  // sets TC_Level and can set STATE = 0 and Err_Code if there is a fault
 
   if (allDAQ == 1 || dewarDAQ == 1 || chamberDAQ == 1) {
     if (GRENOBLE_ENABLED) {
@@ -922,7 +833,7 @@ case 'A':  // Autofill diagnostic
   }
 
 
-  //Get_SD_Pressure(); // sets Pressure and can set STATE = 0 and Err_Code if over-pressure detected
+  Get_SD_Pressure(); // sets Pressure and can set STATE = 0 and Err_Code if over-pressure detected
 
   dewarPress = pressurePSI(Pressure[0]);
 
@@ -2142,22 +2053,13 @@ void SetState(int n){
 
 void Read_Level_Sensors(){ 
 
-  Serial.println(F("[DEBUG] Read_Level_Sensors START"));
-  
   SetI2C(i2cChannel0);
-  Serial.println(F("[DEBUG] SetI2C done"));
-  
   for(int i = 0; i < 10; i++) {
-    Serial.print(F("[DEBUG] SetMux("));
-    Serial.print(i);
-    Serial.println(F(")"));
-    
+
     SetMux(i);
-    Serial.println(F("[DEBUG] SetMux done, calling readADC..."));
-    
-    adc0 = ads.readADC_SingleEnded(0);
-    Serial.println(F("[DEBUG] readADC done"));
-    
+
+    adc0 = ads.readADC_SingleEnded(0);         //ADC channel 0 is assigned to level sensors
+
     LevelSensor[i]=adc0;
     if (adc0 < 10000) {
       LevelStatus[i] = 1; // Too Low -- shorted out?
